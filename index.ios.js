@@ -18,12 +18,6 @@ import React, {
   ListView,
 } from 'react-native';
 
-var MOCKED_MOVIES_DATA = [
-  {title: 'Title', year: '2015', posters: {thumbnail: 'http://i.imgur.com/UePbdph.jpg'}},
-];
-
-var REQUEST_URL = 'https://raw.githubusercontent.com/facebook/react-native/master/docs/MoviesExample.json';
-
 var QuoneRN = React.createClass({
   getInitialState: function() {
     return {
@@ -31,6 +25,7 @@ var QuoneRN = React.createClass({
         rowHasChanged: (row1, row2) => row1 !== row2,
       }),
       loaded: false,
+      permission: 'unknown',
     };
   },
 
@@ -41,9 +36,21 @@ var QuoneRN = React.createClass({
   fetchData: function() {
     Contacts.getAll((err, contacts) => {
       if(err && err.type === 'permissionDenied'){
+        this.setState({
+            loaded: true,
+            permission: 'no',
+        });
         console.log('permissionDenied!')
+      } else if (err) {
+        console.log(err);
+        // should probably show an error message in the ui
       } else {
         console.log(contacts)
+        this.setState({
+            loaded: true,
+            permission: 'yes',
+            contacts: contacts
+        });
       }
     })
     // fetch(REQUEST_URL)
@@ -63,10 +70,25 @@ var QuoneRN = React.createClass({
       return this.renderLoadingView();
     }
 
+    if (this.state.permission === 'no') {
+      return <Text>I don{"'"}t have permission!</Text>
+    }
+
+    console.log(this.state.contacts);
+    var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    var rows = _.map(this.state.contacts, c => {
+      var phone = c.phoneNumbers[0] && c.phoneNumbers[0].number;
+      return {
+        thumbnail: c.thumbnailPath,
+        name: c.givenName + " " + c.familyName,
+        phone: phone
+      }
+    });
+
     return (
       <ListView
-        dataSource={this.state.dataSource}
-        renderRow={this.renderMovie}
+        dataSource={ds.cloneWithRows(rows)}
+        renderRow={this.renderContact}
         style={styles.listView}
       />
     );
@@ -82,19 +104,16 @@ var QuoneRN = React.createClass({
     );
   },
 
-  renderMovie: function(movie) {
+  renderContact: function(contact) {
     return (
       <View style={styles.container}>
       <Image
-      source={{uri: movie.posters.thumbnail}}
+      source={{uri: contact.thumbnail || null}}
       style={styles.thumbnail}
       />
       <View style={styles.rightContainer}>
-      <Text style={styles.title}>{movie.title}</Text>
-      <Text style={styles.year}>{movie.year}</Text>
-      <Text> {
-        _.map([1,2,3], num => "S" + num).join(", ")
-       } </Text>
+      <Text style={styles.title}>{contact.name}</Text>
+      <Text style={styles.year}>{contact.phone}</Text>
       </View>
       </View>
     );
