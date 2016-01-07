@@ -15,31 +15,37 @@ import React, {
   View,
   Image,
   ListView,
+  TouchableHighlight
 } from 'react-native';
+
+
+var baseListView = new ListView.DataSource({
+  rowHasChanged: (row1, row2) => row1 !== row2,
+});
 
 var QuoneRN = React.createClass({
   getInitialState: function() {
     return {
-      dataSource: new ListView.DataSource({
-        rowHasChanged: (row1, row2) => row1 !== row2,
-      }),
+      contacts: null,
       loaded: false,
       permission: 'unknown',
+
+      selectedContact: null,
     };
   },
 
   componentDidMount: function() {
-   this.fetchData();
+    this.fetchContacts();
   },
 
-  fetchData: function() {
+  fetchContacts: function() {
     Contacts.getAll((err, contacts) => {
-      if(err && err.type === 'permissionDenied'){
+      if (err && err.type === 'permissionDenied'){
+        console.log('permission denied!')
         this.setState({
-            loaded: true,
-            permission: 'no',
+          loaded: true,
+          permission: 'no',
         });
-        console.log('permissionDenied!')
       } else if (err) {
         console.log(err);
         // should probably show an error message in the ui
@@ -48,20 +54,22 @@ var QuoneRN = React.createClass({
         this.setState({
             loaded: true,
             permission: 'yes',
-            contacts: contacts
+            contacts: this.getContactsRows(contacts)
         });
       }
     })
-    // fetch(REQUEST_URL)
-    //   .then((response) => response.json())
-    //   .then((responseData) => {
-    //     console.log(responseData);
-    //     this.setState({
-    //       dataSource: this.state.dataSource.cloneWithRows(responseData.movies),
-    //       loaded: true,
-    //     });
-    //   })
-    //   .done();
+  },
+
+  getContactsRows(contacts) {
+    return _.map(contacts, c => {
+      var phone = c.phoneNumbers[0] && c.phoneNumbers[0].number;
+      return {
+        thumbnail: c.thumbnailPath,
+        name: c.givenName + " " + c.familyName,
+        phone: phone,
+        id: c.recordID
+      }
+    });
   },
 
   render: function() {
@@ -70,23 +78,24 @@ var QuoneRN = React.createClass({
     }
 
     if (this.state.permission === 'no') {
-      return <Text>I don{"'"}t have permission!</Text>
+      return <Text>I don{"'"}t have permission!</Text>;
     }
 
-    console.log(this.state.contacts);
-    var ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
-    var rows = _.map(this.state.contacts, c => {
-      var phone = c.phoneNumbers[0] && c.phoneNumbers[0].number;
-      return {
-        thumbnail: c.thumbnailPath,
-        name: c.givenName + " " + c.familyName,
-        phone: phone
-      }
-    });
+    if (this.state.selectedContact) {
+      var contact = _.filter(this.state.contacts, c => c.id === this.state.selectedContact)[0];
+      console.log(this.state.selectedContact);
+      console.log(_.pluck(this.state.contacts, 'id'));
+      console.log(contact);
 
-    return (
+      return this.renderWithChrome(
+        <Text>{'TODO' + contact.name}</Text>,
+        true
+      );
+    }
+
+    return this.renderWithChrome(
       <ListView
-        dataSource={ds.cloneWithRows(rows)}
+        dataSource={baseListView.cloneWithRows(this.state.contacts)}
         renderRow={this.renderContact}
         style={styles.listView}
       />
@@ -96,44 +105,41 @@ var QuoneRN = React.createClass({
   renderLoadingView: function() {
     return (
       <View style={styles.container}>
-      <Text>
-      Loading movies...
-      </Text>
+        <Text>Loading...</Text>
       </View>
     );
   },
 
   renderContact: function(contact) {
+    var onPress = __ => this.setState({selectedContact: contact.id});
     return (
-      <View style={styles.container}>
-      <Image
-      source={{uri: contact.thumbnail || null}}
-      style={styles.thumbnail}
-      />
-      <View style={styles.rightContainer}>
-      <Text style={styles.title}>{contact.name}</Text>
-      <Text style={styles.year}>{contact.phone}</Text>
-      </View>
-      </View>
+      <TouchableHighlight onPress={onPress}>
+        <View style={styles.container}>
+          <View style={styles.rightContainer}>
+            <Text style={styles.name}>{contact.name}</Text>
+            <Text style={styles.phone}>{contact.phone}</Text>
+          </View>
+        </View>
+      </TouchableHighlight>
     );
   },
 
-  // render() {
-  //   var movie = MOCKED_MOVIES_DATA[0];
-  //   return (
-  //      <View style={styles.container}>
-  //        <Image
-  //          source={{uri: movie.posters.thumbnail}}
-  //          style={styles.thumbnail}
-  //        />
-  //        <View style={styles.rightContainer}>
-  //          <Text style={styles.title}>{movie.title}</Text>
-  //          <Text style={styles.year}>{movie.year}</Text>
-  //        </View>
-  //      </View>
-  //    );
-  // }
+  renderWithChrome(content, hasBackButton = false) {
+    var backButton = null;
+    if (hasBackButton) {
+      // TODO  
+    }
 
+    // TODO: make a component
+    return (
+      <View>
+        <View style={styles.headerView}>
+          <Text style={styles.headerText}>Quone</Text>
+        </View>
+        {content}
+      </View>
+    );
+  }
 });
 
 const styles = StyleSheet.create({
@@ -142,18 +148,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    borderBottomWidth: 1,
+    borderColor: 'rgb(200, 198, 204)',
+    marginLeft: 15,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
   rightContainer: {
     flex: 1,
   },
-  title: {
-    fontSize: 20,
-    marginBottom: 8,
-    textAlign: 'center',
+  name: {
+    fontWeight: 'bold',
   },
-  year: {
-    textAlign: 'center',
+  phone: {
   },
   thumbnail: {
     width: 53,
@@ -161,8 +168,18 @@ const styles = StyleSheet.create({
   },
   listView: {
     paddingTop: 20,
-    backgroundColor: '#F5FCFF',
   },
+  headerView: {
+    backgroundColor: '#F9F9F9',
+    height: 62,
+    borderBottomWidth: 1,
+    borderColor: 'rgb(200, 198, 204)',
+    paddingTop: 25,
+    paddingLeft: 6,
+  },
+  headerText: {
+    fontSize: 20
+  }
 });
 
 AppRegistry.registerComponent('QuoneRN', () => QuoneRN);
