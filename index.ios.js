@@ -6,7 +6,6 @@
 
 var _ = require('underscore');
 var Contacts = require('react-native-contacts');
-console.log(Contacts);
 
 import React, {
   AppRegistry,
