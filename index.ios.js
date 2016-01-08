@@ -4,6 +4,8 @@
  */
 'use strict';
 
+// Venkat's  iPhone udid = 'f9b65f9b32899d1f5785c499412063450afbc876';
+
 var _ = require('underscore');
 var Contacts = require('react-native-contacts');
 
@@ -52,16 +54,6 @@ var QuoneRN = React.createClass({
         });
       }
     })
-    // fetch(REQUEST_URL)
-    //   .then((response) => response.json())
-    //   .then((responseData) => {
-    //     console.log(responseData);
-    //     this.setState({
-    //       dataSource: this.state.dataSource.cloneWithRows(responseData.movies),
-    //       loaded: true,
-    //     });
-    //   })
-    //   .done();
   },
 
   render: function() {
@@ -117,23 +109,6 @@ var QuoneRN = React.createClass({
       </View>
     );
   },
-
-  // render() {
-  //   var movie = MOCKED_MOVIES_DATA[0];
-  //   return (
-  //      <View style={styles.container}>
-  //        <Image
-  //          source={{uri: movie.posters.thumbnail}}
-  //          style={styles.thumbnail}
-  //        />
-  //        <View style={styles.rightContainer}>
-  //          <Text style={styles.title}>{movie.title}</Text>
-  //          <Text style={styles.year}>{movie.year}</Text>
-  //        </View>
-  //      </View>
-  //    );
-  // }
-
 });
 
 const styles = StyleSheet.create({
