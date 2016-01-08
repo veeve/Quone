@@ -15,6 +15,7 @@ import React, {
   View,
   Image,
   ListView,
+  ScrollView,
   TouchableHighlight
 } from 'react-native';
 
@@ -24,21 +25,20 @@ var baseListView = new ListView.DataSource({
 });
 
 var QuoneRN = React.createClass({
-  getInitialState: function() {
+  getInitialState() {
     return {
       contacts: null,
       loaded: false,
       permission: 'unknown',
-
       selectedContact: null,
     };
   },
 
-  componentDidMount: function() {
+  componentDidMount() {
     this.fetchContacts();
   },
 
-  fetchContacts: function() {
+  fetchContacts() {
     Contacts.getAll((err, contacts) => {
       if (err && err.type === 'permissionDenied'){
         console.log('permission denied!')
@@ -50,12 +50,12 @@ var QuoneRN = React.createClass({
         console.log(err);
         // should probably show an error message in the ui
       } else {
-        console.log(contacts)
         this.setState({
             loaded: true,
             permission: 'yes',
             contacts: this.getContactsRows(contacts)
         });
+        console.log(this.state.contacts);
       }
     })
   },
@@ -70,16 +70,15 @@ var QuoneRN = React.createClass({
         id: c.recordID
       }
     });
->>>>>>> bfb7178ad2c84f43a8d5715d8b6c6a50b62926af
   },
 
-  render: function() {
+  render() {
     if (!this.state.loaded) {
       return this.renderLoadingView();
     }
 
     if (this.state.permission === 'no') {
-      return <Text>I don{"'"}t have permission!</Text>;
+      return <Text>I dont have permission! </Text>;
     }
 
     if (this.state.selectedContact) {
@@ -89,21 +88,28 @@ var QuoneRN = React.createClass({
       console.log(contact);
 
       return this.renderWithChrome(
-        <Text>{'TODO' + contact.name}</Text>,
+        <Text>{'TODO: ' + contact.name}</Text>,
         true
       );
     }
 
     return this.renderWithChrome(
-      <ListView
-        dataSource={baseListView.cloneWithRows(this.state.contacts)}
-        renderRow={this.renderContact}
-        style={styles.listView}
-      />
+      <ScrollView
+        automaticallyAdjustContentInsets={false}
+        onScroll={() => { console.log('onScroll!'); }}
+        scrollEventThrottle={200}
+        style={styles.scrollView}>
+        {_.map(this.state.contacts, c => this.renderContact(c))}
+      </ScrollView>
+      // <ListView
+      //   dataSource={baseListView.cloneWithRows(this.state.contacts)}
+      //   renderRow={this.renderContact}
+      //   style={styles.listView}
+      // />
     );
   },
 
-  renderLoadingView: function() {
+  renderLoadingView() {
     return (
       <View style={styles.container}>
         <Text>Loading...</Text>
@@ -111,10 +117,10 @@ var QuoneRN = React.createClass({
     );
   },
 
-  renderContact: function(contact) {
+  renderContact(contact) {
     var onPress = __ => this.setState({selectedContact: contact.id});
     return (
-      <TouchableHighlight onPress={onPress}>
+      <TouchableHighlight onPress={onPress} key={contact.id}>
         <View style={styles.container}>
           <View style={styles.rightContainer}>
             <Text style={styles.name}>{contact.name}</Text>
@@ -168,6 +174,9 @@ const styles = StyleSheet.create({
     height: 81,
   },
   listView: {
+    paddingTop: 20,
+  },
+  scrollView: {
     paddingTop: 20,
   },
   headerView: {
