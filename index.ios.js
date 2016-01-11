@@ -50,6 +50,12 @@ var QuoneRN = React.createClass({
         console.log(err);
         // should probably show an error message in the ui
       } else {
+        // add more dummy entries for testing purposes only
+        // if (contacts.length < 10) {
+        //   contacts = contacts.concat(_.map(contacts, c => {
+        //     var d = _.clone(c); d.recordID *= 100; return d;
+        //   }));
+        // }
         this.setState({
             loaded: true,
             permission: 'yes',
@@ -63,9 +69,13 @@ var QuoneRN = React.createClass({
   getContactsRows(contacts) {
     return _.map(contacts, c => {
       var phone = c.phoneNumbers[0] && c.phoneNumbers[0].number;
+      var name = c.givenName;
+      if (c.familyName) {
+        name += " " + c.familyName;
+      }
       return {
         thumbnail: c.thumbnailPath,
-        name: c.givenName + " " + c.familyName,
+        name: name,
         phone: phone,
         id: c.recordID
       }
@@ -95,9 +105,9 @@ var QuoneRN = React.createClass({
 
     return this.renderWithChrome(
       <ScrollView
-        automaticallyAdjustContentInsets={false}
         onScroll={() => { console.log('onScroll!'); }}
         scrollEventThrottle={200}
+        showsVerticalScrollIndicator={true}
         style={styles.scrollView}>
         {_.map(this.state.contacts, c => this.renderContact(c))}
       </ScrollView>
@@ -139,7 +149,7 @@ var QuoneRN = React.createClass({
 
     // TODO: make a component
     return (
-      <View>
+      <View style={styles.chrome}>
         <View style={styles.headerView}>
           <Text style={styles.headerText}>Quone</Text>
         </View>
@@ -150,6 +160,9 @@ var QuoneRN = React.createClass({
 });
 
 const styles = StyleSheet.create({
+  chrome: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     flexDirection: 'row',
