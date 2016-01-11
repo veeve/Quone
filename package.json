@@ -10,6 +10,7 @@
     "react-native-contacts": "^0.1.5"
   },
   "devDependencies": {
-    "babel-cli": "^6.4.0"
+    "babel-cli": "^6.4.0",
+    "babel-preset-react-native": "^1.0.0"
   }
 }
