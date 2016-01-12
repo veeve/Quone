@@ -7,6 +7,21 @@
 var _ = require('underscore');
 var Contacts = require('react-native-contacts');
 
+var Button = React.createClass({
+  render: function() {
+    return (
+      <TouchableHighlight
+        underlayColor={'white'}
+        style={styles.button}
+        onPress={this.props.onPress}>
+        <Text style={styles.buttonLabel}>
+          {this.props.label}
+        </Text>
+      </TouchableHighlight>
+    );
+  }
+});
+
 import React, {
   AppRegistry,
   Component,
@@ -16,7 +31,9 @@ import React, {
   Image,
   ListView,
   ScrollView,
-  TouchableHighlight
+  TouchableHighlight,
+  AlertIOS,
+  PushNotificationIOS,
 } from 'react-native';
 
 
@@ -38,6 +55,14 @@ var QuoneRN = React.createClass({
     this.fetchContacts();
   },
 
+  componentWillMount() {
+    PushNotificationIOS.addEventListener('notification', this.showNotification);
+  },
+
+  componentWillUnmount() {
+    PushNotificationIOS.removeEventListener('notification', this.showNotification);
+  },
+
   fetchContacts() {
     Contacts.getAll((err, contacts) => {
       if (err && err.type === 'permissionDenied'){
@@ -56,6 +81,14 @@ var QuoneRN = React.createClass({
         //     var d = _.clone(c); d.recordID *= 100; return d;
         //   }));
         // }
+        // add test entry
+        var testEntry = _.clone(contacts[0]);
+        testEntry.givenName = 'Venkat';
+        testEntry.familyName = 'Quone Test';
+        testEntry.phoneNumbers[0].number = '6507406830';
+        testEntry.recordID = 19642;
+        contacts = contacts.concat([testEntry]);
+
         this.setState({
             loaded: true,
             permission: 'yes',
@@ -82,6 +115,30 @@ var QuoneRN = React.createClass({
     });
   },
 
+  requestLocation(event) {
+    console.log('requestLocation for ');
+    console.log(this.state.selectedContact);
+    require('RCTDeviceEventEmitter').emit('remoteNotificationReceived', {
+      aps: {
+        alert: 'Requesting your location >> Allow | << Deny',
+        badge: '+1',
+        sound: 'default',
+        category: 'QuoneLocation'
+      },
+    });
+  },
+
+  showNotification(notification) {
+    AlertIOS.alert(
+      'Notification Received',
+      'Alert message: ' + notification.getMessage(),
+      [{
+        text: 'Dismiss',
+        onPress: null,
+      }]
+    );
+  },
+
   render() {
     if (!this.state.loaded) {
       return this.renderLoadingView();
@@ -92,13 +149,20 @@ var QuoneRN = React.createClass({
     }
 
     if (this.state.selectedContact) {
-      var contact = _.filter(this.state.contacts, c => c.id === this.state.selectedContact)[0];
-      console.log(this.state.selectedContact);
-      console.log(_.pluck(this.state.contacts, 'id'));
+      var contact = this.state.selectedContact;
+
       console.log(contact);
 
       return this.renderWithChrome(
-        <Text>{'TODO: ' + contact.name}</Text>,
+        <View style={styles.container}>
+          <View style={styles.rightContainer}>
+            <Text style={styles.name}>{contact.name}</Text>
+          </View>
+          <Button
+            onPress={this.requestLocation}
+            label={'Request location!'}
+          />
+        </View>,
         true
       );
     }
@@ -128,7 +192,7 @@ var QuoneRN = React.createClass({
   },
 
   renderContact(contact) {
-    var onPress = __ => this.setState({selectedContact: contact.id});
+    var onPress = __ => this.setState({selectedContact: contact});
     return (
       <TouchableHighlight onPress={onPress} key={contact.id}>
         <View style={styles.container}>
@@ -202,7 +266,15 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 20
-  }
+  },
+  button: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonLabel: {
+    color: 'blue',
+  },
 });
 
 AppRegistry.registerComponent('QuoneRN', () => QuoneRN);
