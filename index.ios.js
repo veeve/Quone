@@ -6,7 +6,6 @@
 
 var _ = require('underscore');
 var Contacts = require('react-native-contacts');
-
 var Button = React.createClass({
   render: function() {
     return (
@@ -21,6 +20,8 @@ var Button = React.createClass({
     );
   }
 });
+let serverHost = '192.168.0.104:4242';
+let myPhone = '+16507406830';
 
 import React, {
   AppRegistry,
@@ -29,19 +30,14 @@ import React, {
   Text,
   View,
   Image,
-  ListView,
   ScrollView,
   TouchableHighlight,
   AlertIOS,
   PushNotificationIOS,
 } from 'react-native';
 
-
-var baseListView = new ListView.DataSource({
-  rowHasChanged: (row1, row2) => row1 !== row2,
-});
-
 var QuoneRN = React.createClass({
+  // Mark: Event handlers
   getInitialState() {
     return {
       contacts: null,
@@ -56,13 +52,17 @@ var QuoneRN = React.createClass({
   },
 
   componentWillMount() {
+    PushNotificationIOS.requestPermissions();
+    PushNotificationIOS.addEventListener('register', this.registerForNotifications);
     PushNotificationIOS.addEventListener('notification', this.showNotification);
   },
 
   componentWillUnmount() {
     PushNotificationIOS.removeEventListener('notification', this.showNotification);
+    PushNotificationIOS.removeEventListener('register', this.registerForNotifications);
   },
 
+  // Mark: fetch data from phone
   fetchContacts() {
     Contacts.getAll((err, contacts) => {
       if (err && err.type === 'permissionDenied'){
@@ -85,14 +85,14 @@ var QuoneRN = React.createClass({
         var testEntry = _.clone(contacts[0]);
         testEntry.givenName = 'Venkat';
         testEntry.familyName = 'Quone Test';
-        testEntry.phoneNumbers[0].number = '6507406830';
+        testEntry.phoneNumbers[0].number = myPhone;
         testEntry.recordID = 19642;
         contacts = contacts.concat([testEntry]);
 
         this.setState({
-            loaded: true,
-            permission: 'yes',
-            contacts: this.getContactsRows(contacts)
+          loaded: true,
+          permission: 'yes',
+          contacts: this.getContactsRows(contacts)
         });
         console.log(this.state.contacts);
       }
@@ -115,30 +115,46 @@ var QuoneRN = React.createClass({
     });
   },
 
+  // Mark: Functions related to registering and displaying notifications
+  postData(url, body) {
+    var headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: body,
+    });
+  },
+
   requestLocation(event) {
     console.log('requestLocation for ');
-    console.log(this.state.selectedContact);
-    require('RCTDeviceEventEmitter').emit('remoteNotificationReceived', {
-      aps: {
-        alert: 'Requesting your location >> Allow | << Deny',
-        badge: '+1',
-        sound: 'default',
-        category: 'QuoneLocation'
-      },
-    });
+    this.postData('http://' + serverHost + '/apns',
+      JSON.stringify(this.state.selectedContact)
+    );
   },
 
   showNotification(notification) {
     AlertIOS.alert(
-      'Notification Received',
-      'Alert message: ' + notification.getMessage(),
-      [{
-        text: 'Dismiss',
-        onPress: null,
-      }]
+      "Quon'd",
+      notification.getMessage(),
+      [{text: 'Ignore', onPress: null},
+       {text: 'Allow', onPress: null}]
     );
   },
 
+  registerForNotifications(token) {
+    console.log('register for APNS');
+    this.postData('http://' + serverHost + '/register',
+      JSON.stringify({
+        phone: myPhone,
+        token: token,
+      })
+    );
+  },
+
+  // Mark: render functions
   render() {
     if (!this.state.loaded) {
       return this.renderLoadingView();
@@ -175,11 +191,6 @@ var QuoneRN = React.createClass({
         style={styles.scrollView}>
         {_.map(this.state.contacts, c => this.renderContact(c))}
       </ScrollView>
-      // <ListView
-      //   dataSource={baseListView.cloneWithRows(this.state.contacts)}
-      //   renderRow={this.renderContact}
-      //   style={styles.listView}
-      // />
     );
   },
 
@@ -223,6 +234,7 @@ var QuoneRN = React.createClass({
   }
 });
 
+// Mark: CSS
 const styles = StyleSheet.create({
   chrome: {
     flex: 1,
@@ -249,9 +261,6 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 53,
     height: 81,
-  },
-  listView: {
-    paddingTop: 20,
   },
   scrollView: {
     paddingTop: 20,
